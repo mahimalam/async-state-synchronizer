@@ -1,0 +1,38 @@
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# ---- Secrets & credentials (NEVER commit) ----
+.env
+.env.local
+.env.*
+!.env.example
+*.session
+*.session-journal
+*.key
+*.pem
+*service-account*.json
+credentials*.json
+google-credentials*.json
+
+# ---- Runtime data & databases ----
+data/
+research/data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+
+# ---- Logs & datasets (large/regenerated) ----
+logs/
+*.log
+*.jsonl
+*.csv
+
+# ---- OS ----
+.DS_Store
