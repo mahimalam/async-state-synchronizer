@@ -51,7 +51,7 @@ from .exchange_feeds import (
     SecondarySourceFeed,
     TertiarySourceFeed,
     OkxFeed,
-    KrakenFeed,
+    DataSourceEFeed,
 )
 
 logger = logging.getLogger(__name__)
@@ -108,7 +108,7 @@ class PriceConsensus:
                 SecondarySourceFeed(self.asset, freshness_max_sec=freshness_max_sec),
                 TertiarySourceFeed(self.asset, freshness_max_sec=freshness_max_sec),
                 OkxFeed(self.asset, freshness_max_sec=freshness_max_sec),
-                KrakenFeed(self.asset, freshness_max_sec=freshness_max_sec),
+                DataSourceEFeed(self.asset, freshness_max_sec=freshness_max_sec),
             ]
         self.feeds: list[ExchangeTickFeed] = feeds
         self._history: deque[ConsensusSnapshot] = deque(maxlen=history_size)

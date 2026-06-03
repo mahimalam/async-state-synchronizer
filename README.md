@@ -50,7 +50,7 @@ graph TD
 This project implements extreme latency optimizations, bypassing standard API overhead to achieve execution limits normally reserved for C++ bare-metal engines.
 
 ### 1. Bypassing Cryptographic Overhead (The Pre-Signed Pool)
-To execute a state change on decentralized networks, clients typically must construct and sign an `EIP-712` cryptographic payload at execution time. This process takes ~5-15 milliseconds natively in Python, which is unacceptable for sub-millisecond environments.
+To execute a state change on decentralized networks, clients typically must construct and sign an `typed-data` cryptographic payload at execution time. This process takes ~5-15 milliseconds natively in Python, which is unacceptable for sub-millisecond environments.
 - **The Solution:** A dedicated background worker thread (`presigned_payload_pool.py`) proactively computes and signs a "ladder" of theoretical payloads for every active node state *in advance*. When a worker needs to execute instantly, it bypasses the ECDSA signing curve entirely, pops the correct pre-signed payload directly from RAM, and dispatches it over TCP in `< 1ms`.
 
 ### 2. Autonomous Drift Guard
@@ -66,7 +66,7 @@ The system integrates with a multi-node off-chain data aggregator (`DataConsensu
 ## 🛠️ Technical Specifications
 
 - **Concurrency Model:** Python 3.10+, `asyncio`, isolated Task Managers.
-- **Cryptography:** Local EIP-712 typed-data secp256k1 signing (offloaded to ThreadPoolExecutors).
+- **Cryptography:** Local typed-data typed-data asymmetric-key signing (offloaded to ThreadPoolExecutors).
 - **Network Interfaces:** Asynchronous WebSockets, continuous REST polling pipelines via optimized `aiohttp` sessions.
 - **Data & IPC:** SQLite running in Write-Ahead Logging (WAL) mode, OS-level `fcntl` locks for thread safety.
 - **Architecture:** Complex Producer-Consumer patterns and Micro-yield optimization strategies.
