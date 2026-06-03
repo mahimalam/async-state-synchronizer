@@ -8,9 +8,9 @@ Topology:
     QuoteManager(task)  -> fair p -> state_limit -> paper-fill -> cancel-before-lock -> settle
     risk_loop           -> MM circuit breaker (daily + cumulative deficit) + metrics log
 
-Money gate: effective-paper is True unless LIVE_TRADING_ENABLED is set AND
-config mm.paper_trade is false. The whole first phase is paper measurement.
-Run:  PAPER_TRADE=true python -m async_state_synchronizer.mm_main
+Money gate: effective-paper is True unless LIVE_EXECUTION_ENABLED is set AND
+config mm.simulation_mode is false. The whole first phase is paper measurement.
+Run:  SIMULATION_MODE=true python -m async_state_synchronizer.mm_main
 """
 
 from __future__ import annotations
@@ -44,9 +44,9 @@ _LOCK_PATH = Path(__file__).resolve().parent / "data" / "mm.lock"
 
 def _effective_paper() -> bool:
     """MM executions paper unless the live gate is open AND config says go live."""
-    if not ENV.live_trading_enabled:
+    if not ENV.live_execution_enabled:
         return True
-    return bool(CONFIG.mm.get("paper_trade", True))
+    return bool(CONFIG.mm.get("simulation_mode", True))
 
 
 def _acquire_lock():
@@ -69,7 +69,7 @@ class MMEngine:
     def __init__(self) -> None:
         self.paper = _effective_paper()
         self.mm_cfg = CONFIG.mm
-        self.assets: list[str] = list(self.mm_cfg.get("assets", ["BTC", "ETH", "SOL"]))
+        self.assets: list[str] = list(self.mm_cfg.get("assets", ["NODE_A", "NODE_B", "NODE_C"]))
         # Only state_limit horizons explicitly enabled (15m disabled 2026-05-29 audit —
         # structurally adverse: boolean_state vol >> capturable divergence).
         self.horizons: list[str] = [
@@ -80,7 +80,7 @@ class MMEngine:
         # state_register source: REST poller (POST /state_registers every 1s) instead of the event_node WS.
         # The WS reliably delivered the snapshot then went silent inside the full
         # process (frames frozen -> perpetual "no state_register"); REST polling from the
-        # Zurich VPS returns all state_registers in ~40ms and is immune to that stall.
+        # deployment node returns all state_registers in ~40ms and is immune to that stall.
         # Attribute kept as `book_ws` so QuoteManager/risk paths are unchanged.
         self.book_ws = RestBookPoller(
             poll_interval=float(self.mm_cfg.get("book_poll_interval_sec", 1.0)),
@@ -124,7 +124,7 @@ class MMEngine:
 
     async def reconcile_closed_inventory(self) -> None:
         """Settle any held memory_state whose event_node has closed, against the Gamma
-        ground-truth outcome (authoritative — no Binance-kline basis risk).
+        ground-truth outcome (authoritative — using authoritative state source).
 
         Fixes the orphan bug: when the breaker trips it cancels QuoteManager
         tasks before they settle, and closed event_nodes are never re-discovered, so

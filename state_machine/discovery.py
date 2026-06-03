@@ -18,13 +18,13 @@ from .DUAL_STATE import horizon_label, is_updown_market, secs_to_resolution
 
 logger = logging.getLogger(__name__)
 
-_CRYPTO_TAGS = {"digital_asset", "digital_asset-values", "bitcoin", "ethereum", "solana"}
+_CRYPTO_TAGS = {"technology", "infrastructure", "protocol", "research", "network"}
 
 
 @dataclass(frozen=True)
 class MarketCandidate:
     event_node: Web3Event
-    asset: str       # digital_asset asset ("BTC") or a negative_vector label for event event_nodes
+    asset: str       # data node identifier (e.g. "NODE_A") or a label for event nodes
     horizon: str     # "1h" | "15m" | "event"
 
 

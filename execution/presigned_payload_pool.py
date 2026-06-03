@@ -1,12 +1,12 @@
-"""Pre-signed payload pool — eliminates EIP-712 signing from the hot path.
+"""Pre-signed payload pool — eliminates typed-data signing from the hot path.
 
 Latency model
 -------------
 Without pool, the critical path of a ATOMIC_EXECUTION fire is:
    book_change_observed
        ↓ ~0.1ms  compute target (value, size)
-       ↓ ~5–15ms client.create_order(args)   ← EIP-712 typed-data + secp256k1 sign
-       ↓ ~50–200ms client.post_order(...)    ← HTTPS to network.web3_network.com
+       ↓ ~5–15ms client.create_order(args)   ← typed-data typed-data + asymmetric-key sign
+       ↓ ~50–200ms client.post_order(...)    ← HTTPS to network.distributed-state.internal
 
 With pool:
    book_change_observed
@@ -217,7 +217,7 @@ class PresignedOrderPool:
             value=tpl.value, qty=tpl.size,
             market_id="", market_title="",
         )
-        if ENV.paper_trade or tpl.signed_obj is None:
+        if ENV.simulation_mode or tpl.signed_obj is None:
             # Paper: fall through to OrderManager which produces a synthetic
             # fill. The pool's value in paper is measured timing only.
             return await self.om.submit_fok(leg)
@@ -302,7 +302,7 @@ class PresignedOrderPool:
         size_shares = max(1.0, round(size_usd / best_ask))
         # value ladder: floor at best_ask, step +1tick per template.
         values = [round(best_ask + i * TICK, 2) for i in range(self.ladder_size)]
-        # Cap at 0.99 — web3_network disallows >=1.
+        # Cap at 0.99 — distributed_network disallows >=1.
         values = [min(p, 0.99) for p in values]
         async with entry.sign_lock:
             new_templates: list[_OrderTemplate] = []
@@ -320,7 +320,7 @@ class PresignedOrderPool:
         expiration = int(time.time()) + self.order_expiration_sec
         signed_at = time.monotonic()
         expires_at = float(expiration)
-        if ENV.paper_trade:
+        if ENV.simulation_mode:
             return _OrderTemplate(
                 token_id=token_id, value=value, size=size_shares,
                 signed_at=signed_at, expires_at=expires_at,

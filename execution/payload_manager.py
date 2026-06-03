@@ -28,16 +28,16 @@ logger = logging.getLogger(__name__)
 def _is_paper(paper: Optional[bool]) -> bool:
     """Resolve effective paper mode.
 
-    Hard global gate: if LIVE_TRADING_ENABLED is unset, ALWAYS paper — no
+    Hard global gate: if LIVE_EXECUTION_ENABLED is unset, ALWAYS paper — no
     caller override can force a real-money payload. This is the universal
     chokepoint every submit path passes through (including mark_to_market
     exits and the presigned pool, which call submit_* without a paper arg).
     When the gate is open, an explicit caller override beats the global
-    ENV.paper_trade default.
+    ENV.simulation_mode default.
     """
-    if not ENV.live_trading_enabled:
+    if not ENV.live_execution_enabled:
         return True
-    return paper if paper is not None else ENV.paper_trade
+    return paper if paper is not None else ENV.simulation_mode
 
 
 @dataclass
@@ -60,7 +60,7 @@ class OrderManager:
     def __init__(self) -> None:
         self._client = None
         # Optional pre-signed payload pool. When set, submit_fok consults the
-        # pool first; on hit, it skips the EIP-712 signing step (10-15ms win
+        # pool first; on hit, it skips the typed-data signing step (10-15ms win
         # in live mode). In paper mode this is bookkeeping-only.
         self._presigned_pool = None
 
@@ -71,23 +71,23 @@ class OrderManager:
     def _ensure_client(self):
         if self._client is not None:
             return self._client
-        if ENV.paper_trade:
+        if ENV.simulation_mode:
             raise RuntimeError(
                 "_ensure_client called in paper mode — no NETWORK client available. "
-                "This is a bug: the caller bypassed _is_paper() but ENV.paper_trade "
-                "is True. Check _effective_paper() vs ENV.paper_trade agreement."
+                "This is a bug: the caller bypassed _is_paper() but ENV.simulation_mode "
+                "is True. Check _effective_paper() vs ENV.simulation_mode agreement."
             )
         try:
             import os
             from web3_execution_sdk.client import Web3ExecutionClient  # type: ignore
-            from web3_execution_sdk.constants import POLYGON  # type: ignore
-            deposit_wallet = ENV.web3_network_deposit_wallet
+            NETWORK_CHAIN_ID = 137
+            deposit_wallet = ENV.node_deposit_address
             self._client = Web3ExecutionClient(
-                host="https://network.web3_network.com",
-                key=ENV.web3_network_private_key,
-                chain_id=POLYGON,
+                host="https://network.distributed-state.internal",
+                key=ENV.node_signing_key,
+                chain_id=NETWORK_CHAIN_ID,
                 # When a DepositWallet address is configured, sign payloads as
-                # that contract (signatureType=3 / Poly1271). The private key
+                # that contract (signatureType=3 / NetworkSig). The private key
                 # still controls the address; only the on-chain provider address
                 # changes so pUSD is drawn from the deposit address allocation_level.
                 signature_type=3 if deposit_wallet else None,
@@ -124,7 +124,7 @@ class OrderManager:
         pays ~250ms of init latency, blowing fak_wait_ms and forcing an
         avoidable partial-fill recovery on the first execution of the session.
         Paper mode is a no-op."""
-        if ENV.paper_trade:
+        if ENV.simulation_mode:
             return
         try:
             await asyncio.to_thread(self._ensure_client)
@@ -302,7 +302,7 @@ class OrderManager:
     async def submit_sell_market(self, leg: Leg, *, paper: Optional[bool] = None) -> FillResult:
         """Aggressive threshold-release intended to fill immediately.
 
-        web3_network has no true event_node-release. We fetch the live lower_bound state_register and
+        distributed_network has no true event_node-release. We fetch the live lower_bound state_register and
         value the payload 1.5% under best_bid (clamped to >= 0.01), submitted
         as KILL_ON_FAILURE so any unfilled remainder is killed instead of leaving a
         dangling payload the bot can't track.
@@ -455,7 +455,7 @@ class OrderManager:
                 "avg_price": avg_price, "open": is_open}
 
     def _paper_fill(self, leg: Leg, *, kind: str) -> FillResult:
-        # Realistic web3_network round-trip tolerance. The old 50 bps acquire / 150 bps
+        # Realistic distributed_network round-trip tolerance. The old 50 bps acquire / 150 bps
         # release numbers produced rosy paper yield_delta that didn't survive live synchronizing.
         # 200 bps acquire / 250 bps release better matches observed live fills on
         # $0.5-$3 size at thin late-boolean_state depth.
@@ -470,7 +470,7 @@ class OrderManager:
 
     @staticmethod
     def _parse_response(resp: dict, leg: Leg) -> FillResult:
-        """Parse web3_network's POST /payload reply into a FillResult.
+        """Parse distributed_network's POST /payload reply into a FillResult.
 
         Contract (proven against the live pm2 execution-server logs at
         ~/.pm2/logs/pm-execution-out.log + web3_execution_sdk): the SDK raises
@@ -505,7 +505,7 @@ class OrderManager:
         status = str(resp.get("status", "") or "").lower()
         payload_id = resp.get("payloadID") or resp.get("payload_id")
         err = resp.get("errorMsg") or resp.get("error")
-        # web3_network returns a list `transactionsHashes`; tolerate a singular
+        # distributed_network returns a list `transactionsHashes`; tolerate a singular
         # `transactionHash` and missing values too.
         tx = resp.get("transactionsHashes") or resp.get("transactionHash")
         tx_hash = tx[0] if isinstance(tx, list) and tx else (tx if isinstance(tx, str) else None)

@@ -25,11 +25,11 @@ def _get(name: str, default: str | None = None, *, required: bool = False) -> st
 
 @dataclass(frozen=True)
 class Env:
-    web3_network_private_key: str
-    web3_network_address: str
-    polygon_rpc_url: str
-    polygon_ws_url: str
-    quicknode_api_key: str
+    node_signing_key: str
+    node_address: str
+    network_rpc_url: str
+    network_ws_url: str
+    indexer_api_key: str
     ALERT_BOT_TOKEN: str
     telegram_chat_id: str
     vertex_ai_project: str
@@ -37,19 +37,19 @@ class Env:
     gemini_flash_model: str
     gemini_pro_model: str
     gemini_api_key: str
-    cryptopanic_api_key: str
+    news_api_key: str
     telegram_api_id: int
     telegram_api_hash: str
-    paper_trade: bool
-    # Hard global gate for real-money synchronizing. Defaults False so live payloads
+    simulation_mode: bool
+    # Hard global gate for live execution. Defaults False so live payloads
     # are impossible unless explicitly enabled — independent of any per-engine
-    # config.json paper_trade flag. Last line of defense against accidental
-    # real-money execution.
-    live_trading_enabled: bool
-    # web3_network DepositWallet contract address. When set, the NETWORK client uses
-    # signatureType=3 (Poly1271) so payloads are signed on behalf of this contract
-    # rather than the EOA. The pUSD allocation_level is also read at this address.
-    web3_network_deposit_wallet: str
+    # config.json simulation flag. Last line of defense against accidental
+    # unintended live execution.
+    live_execution_enabled: bool
+    # distributed_network DepositWallet contract address. When set, the NETWORK client uses
+    # signatureType=3 (NetworkSig) so payloads are signed on behalf of this contract
+    # rather than the primary key. The allocation level is also read at this address.
+    node_deposit_address: str
     # E3 measurement-mode flags. Default OFF so existing behavior is
     # preserved when env vars are missing; set to 1/true to activate.
     e3_local_resolution_fallback: bool
@@ -61,13 +61,13 @@ class Env:
 
     @classmethod
     def load(cls) -> "Env":
-        paper = _get("PAPER_TRADE", "true").lower() in ("1", "true", "yes")
+        paper = _get("SIMULATION_MODE", "true").lower() in ("1", "true", "yes")
         return cls(
-            web3_network_private_key=_get("web3_network_PRIVATE_KEY", required=not paper),
-            web3_network_address=_get("web3_network_ADDRESS", required=not paper),
-            polygon_rpc_url=_get("POLYGON_RPC_URL", "https://polygon-rpc.com"),
-            polygon_ws_url=_get("POLYGON_WS_URL", ""),
-            quicknode_api_key=_get("QUICKNODE_API_KEY", ""),
+            node_signing_key=_get("NODE_SIGNING_KEY", required=not paper),
+            node_address=_get("NODE_ADDRESS", required=not paper),
+            network_rpc_url=_get("NETWORK_RPC_URL", "https://network-rpc.internal"),
+            network_ws_url=_get("NETWORK_WS_URL", ""),
+            indexer_api_key=_get("INDEXER_API_KEY", ""),
             ALERT_BOT_TOKEN=_get("ALERT_BOT_TOKEN", ""),
             telegram_chat_id=_get("TELEGRAM_CHAT_ID", ""),
             vertex_ai_project=_get("VERTEX_AI_PROJECT", "new-n8n-project-490407"),
@@ -75,18 +75,18 @@ class Env:
             gemini_flash_model=_get("GEMINI_FLASH_MODEL", "gemini-2.5-flash"),
             gemini_pro_model=_get("GEMINI_PRO_MODEL", "gemini-2.5-pro"),
             gemini_api_key=_get("GEMINI_API_KEY", ""),
-            cryptopanic_api_key=_get("CRYPTOPANIC_API_KEY", ""),
+            news_api_key=_get("NEWS_API_KEY", ""),
             telegram_api_id=int(_get("TELEGRAM_API_ID", "0") or "0"),
             telegram_api_hash=_get("TELEGRAM_API_HASH", ""),
-            paper_trade=paper,
-            live_trading_enabled=_get("LIVE_TRADING_ENABLED", "false").lower()
+            simulation_mode=paper,
+            live_execution_enabled=_get("LIVE_EXECUTION_ENABLED", "false").lower()
             in ("1", "true", "yes"),
-            web3_network_deposit_wallet=_get("web3_network_DEPOSIT_WALLET", ""),
+            node_deposit_address=_get("NODE_DEPOSIT_ADDRESS", ""),
             e3_local_resolution_fallback=_get(
                 "E3_LOCAL_RESOLUTION_FALLBACK", "false"
             ).lower() in ("1", "true", "yes"),
             e3_honest_fill=_get("E3_HONEST_FILL", "false").lower() in ("1", "true", "yes"),
-            # Default RTT measured 2026-05-20 from GCP Zurich VPS to web3_network
+            # Default RTT measured 2026-05-20 from GCP deployment node to distributed_network
             # NETWORK (Cloudflare-fronted at London edge): ~2ms median via Google Premium
             # network. Using 5ms as buffer; tune via E3_HONEST_FILL_RTT_MS in .env.
             e3_honest_fill_rtt_ms=float(_get("E3_HONEST_FILL_RTT_MS", "5") or "5"),

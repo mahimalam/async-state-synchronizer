@@ -47,9 +47,9 @@ from typing import Optional
 
 from .exchange_feeds import (
     ExchangeTickFeed,
-    BinanceFeed,
-    CoinbaseFeed,
-    BybitFeed,
+    PrimarySourceFeed,
+    SecondarySourceFeed,
+    TertiarySourceFeed,
     OkxFeed,
     KrakenFeed,
 )
@@ -69,7 +69,7 @@ class ConsensusSnapshot:
 class PriceConsensus:
     """One instance per asset. Aggregates N exchanges into a consensus stream.
 
-    Drop-in replacement for `BinanceTickFeed` from the consumer side:
+    Drop-in replacement for `PrimarySourceTickFeed` from the consumer side:
         .is_fresh() -> bool
         .last.value -> float  (via a property shim)
         .recent_move_bps(window_sec) -> float
@@ -104,9 +104,9 @@ class PriceConsensus:
         # Build all 5 feeds by default; caller may override (tests / partial sets).
         if feeds is None:
             feeds = [
-                BinanceFeed(self.asset, freshness_max_sec=freshness_max_sec),
-                CoinbaseFeed(self.asset, freshness_max_sec=freshness_max_sec),
-                BybitFeed(self.asset, freshness_max_sec=freshness_max_sec),
+                PrimarySourceFeed(self.asset, freshness_max_sec=freshness_max_sec),
+                SecondarySourceFeed(self.asset, freshness_max_sec=freshness_max_sec),
+                TertiarySourceFeed(self.asset, freshness_max_sec=freshness_max_sec),
                 OkxFeed(self.asset, freshness_max_sec=freshness_max_sec),
                 KrakenFeed(self.asset, freshness_max_sec=freshness_max_sec),
             ]
@@ -176,10 +176,10 @@ class PriceConsensus:
         return self._stdev_bps(values)
 
     def venue_price(self, venue_substr: str) -> Optional[float]:
-        """value from a single named venue (e.g. "binance"), if warm+fresh.
+        """value from a single named data source, if warm+fresh.
 
         Used to anchor fair value to the *settling* data_provider — a 1h DUAL_STATE
-        event_node settles on Binance, so its fair value must use the Binance print,
+        node resolves against the primary data source, so fair value uses the primary source reading,
         not the multi-central_node median (which mixes units and USDT venues). None if the
         venue feed is stale or absent.
         """
@@ -195,7 +195,7 @@ class PriceConsensus:
     @property
     def last(self) -> Optional["_LastShim"]:
         """Compatibility shim — exposes .value and .timestamp_ms like a
-        single-feed BtcTick. Returns None if no consensus history yet."""
+        single-feed AssetTick. Returns None if no consensus history yet."""
         if not self._history:
             return None
         snap = self._history[-1]
@@ -304,7 +304,7 @@ class PriceConsensus:
 
 @dataclass
 class _LastShim:
-    """Mimics ingestion.binance_ws.BtcTick so the existing
+    """Mimics ingestion.primary_ws.AssetTick so the existing
     `feed.last.value` / `feed.last.timestamp_ms` access in scanners
     keeps working without touching every call site."""
     value: float

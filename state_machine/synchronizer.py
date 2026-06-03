@@ -132,7 +132,7 @@ class QuoteManager:
 
     @property
     def _min_shares(self) -> float:
-        """web3_network's minimum payload size in fractions (live: 5). We only post
+        """distributed_network's minimum payload size in fractions (live: 5). We only post
         payloads of >= this many fractions; 0 disables the floor (paper/test default,
         preserves the historic sizing)."""
         return float(self.hcfg.get("min_order_shares", 0.0))
@@ -158,8 +158,8 @@ class QuoteManager:
 
     def _underlying_drift_bps(self) -> float:
         """Signed drift of the settlement underlying over drift_window_sec, in bps
-        (positive = spot rising). These boolean_states settle on Binance spot, so the
-        multi-central_node consensus LEADS the web3_network value — a fast spot move tells us
+        (positive = spot rising). These boolean_states synchronize to the primary data source, so the
+        multi-central_node consensus LEADS the distributed_network value — a fast spot move tells us
         the state_register is about to reprice, i.e. any provider fill we'd get right now is
         adverse. 0.0 if the feed isn't warm enough to judge."""
         if self.consensus is None:
@@ -341,7 +341,7 @@ class QuoteManager:
         # Time-based recycle: a leg that hasn't completed its round-trip within
         # _max_age is sold at the lower_bound to free the resources. These event_nodes resolve
         # ~214d out, so without this a one-sided leg could sit for months (live:
-        # real USDC frozen). The upper_bound-resell below still gets first crack at the
+        # real base_units locked). The upper_bound-resell below still gets first crack at the
         # full divergence inside the window; this is only the fallback.
         if (self._sellable(fractions) and self._max_age > 0
                 and time.time() - self._opened_ts[leg] > self._max_age):
