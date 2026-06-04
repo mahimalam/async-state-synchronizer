@@ -2,6 +2,7 @@
   <h1>Async State Synchronizer</h1>
   <p><b>High-Frequency Distributed Synchronization Daemon</b></p>
   
+  [![CI](https://github.com/mahimalam/async-state-synchronizer/actions/workflows/ci.yml/badge.svg)](https://github.com/mahimalam/async-state-synchronizer/actions/workflows/ci.yml)
   [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
   [![Asyncio](https://img.shields.io/badge/Concurrency-Asyncio-lightgrey?style=for-the-badge)](https://docs.python.org/3/library/asyncio.html)
   [![Architecture](https://img.shields.io/badge/Architecture-Distributed-orange?style=for-the-badge)](#)
@@ -59,14 +60,14 @@ The system integrates with a multi-node off-chain data aggregator (`DataConsensu
 
 ### 3. Asynchronous Network Resilience
 - **Smart Payload Parsing:** To handle external API unreliability, the execution manager bypasses standard SDK limit rates by dynamically parsing incoming JSON network responses via custom byte parsers. It accurately calculates the quantity of synchronized states even during partial internal network failures.
-- **Memory Rehydration:** The continuous `risk_loop()` monitors memory integrity. If the core orchestrator process is forcefully restarted, it queries the actual underlying smart contracts directly via RPC to perfectly rehydrate the SQLite memory state upon reboot, preventing orphaned or ghost execution states.
+- **Memory Rehydration:** The continuous `risk_loop()` monitors memory integrity. If the core orchestrator process is forcefully restarted, it queries the underlying node state directly via the network interface to perfectly rehydrate the SQLite memory state upon reboot, preventing orphaned or ghost execution states.
 
 ---
 
 ## 🛠️ Technical Specifications
 
 - **Concurrency Model:** Python 3.10+, `asyncio`, isolated Task Managers.
-- **Cryptography:** Local typed-data typed-data asymmetric-key signing (offloaded to ThreadPoolExecutors).
+- **Cryptography:** Local typed-data asymmetric-key signing (offloaded to ThreadPoolExecutors).
 - **Network Interfaces:** Asynchronous WebSockets, continuous REST polling pipelines via optimized `aiohttp` sessions.
 - **Data & IPC:** SQLite running in Write-Ahead Logging (WAL) mode, OS-level `fcntl` locks for thread safety.
 - **Architecture:** Complex Producer-Consumer patterns and Micro-yield optimization strategies.
@@ -88,12 +89,3 @@ cp .env.example .env
 python3 main_daemon.py --mode autonomous --workers MAX
 ```
 
----
-
-### 🔐 Security & Intellectual Property Notice
-*This repository serves as a professional portfolio demonstration of asynchronous architecture and high-frequency network systems.*
-
-To protect proprietary data models:
-- Core execution thresholds and mathematical logic gates have been abstracted.
-- Hardcoded EVM contract addresses, private key locators, and proprietary RPC endpoints have been permanently scrubbed.
-- Certain terminology has been mapped to general graph-theory concepts to ensure broad regulatory compliance.
