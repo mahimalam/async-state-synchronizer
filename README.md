@@ -52,7 +52,7 @@ This project implements extreme latency optimizations, bypassing standard API ov
 
 ### 1. Bypassing Cryptographic Overhead (The Pre-Signed Pool)
 To execute a state change on decentralized networks, clients typically must construct and sign an `typed-data` cryptographic payload at execution time. This process takes ~5-15 milliseconds natively in Python, which is unacceptable for sub-millisecond environments.
-- **The Solution:** A dedicated background worker thread (`presigned_payload_pool.py`) proactively computes and signs a "ladder" of theoretical payloads for every active node state *in advance*. When a worker needs to execute instantly, it bypasses the ECDSA signing curve entirely, pops the correct pre-signed payload directly from RAM, and dispatches it over TCP in `< 1ms`.
+- **The Solution:** A dedicated background worker thread (`presigned_payload_pool.py`) proactively computes and signs a "ladder" of theoretical payloads for every active node state *in advance*. When a worker needs to execute instantly, it bypasses the signature computation overhead entirely, pops the correct pre-signed payload directly from RAM, and dispatches it over TCP in `< 1ms`.
 
 ### 2. Autonomous Drift Guard
 The system integrates with a multi-node off-chain data aggregator (`DataConsensus`). It constantly measures the velocity of real-world underlying data changes (drift). 
