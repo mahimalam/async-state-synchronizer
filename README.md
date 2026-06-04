@@ -2,7 +2,7 @@
   <h1>Async State Synchronizer</h1>
   <p><b>High-Frequency Distributed Synchronization Daemon</b></p>
   
-  [![CI](https://github.com/mahimalam/async-state-synchronizer/actions/workflows/ci.yml/badge.svg)](https://github.com/mahimalam/async-state-synchronizer/actions/workflows/ci.yml)
+  [![CI](https://github.com/mahimalam/distributed-state-daemon/actions/workflows/ci.yml/badge.svg)](https://github.com/mahimalam/distributed-state-daemon/actions/workflows/ci.yml)
   [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
   [![Asyncio](https://img.shields.io/badge/Concurrency-Asyncio-lightgrey?style=for-the-badge)](https://docs.python.org/3/library/asyncio.html)
   [![Architecture](https://img.shields.io/badge/Architecture-Distributed-orange?style=for-the-badge)](#)
